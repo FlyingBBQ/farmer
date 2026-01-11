@@ -1,6 +1,7 @@
+from __builtins__ import get_world_size
 clear()
 
-import plant
+import farming
 import util
 
 def temp():
@@ -22,14 +23,13 @@ def temp():
         # farm pumpkin
         #pumpkin_all()
 
-def main():
-    relation_dict = {Items.Pumpkin: 1}
-    relation_dict = util.get_item_cost(relation_dict, Entities.Pumpkin, 1)
-    print(relation_dict)
 
-    #print(util.get_item_yield(Items.Hay))
-    #print(util.get_item_yield(Items.Wood))
-    print(util.get_item_yield(Items.Carrot))
+def main():
+    change_hat(Hats.Wizard_Hat)
+    while True:
+        lowest_item = util.get_lowest_item()
+        func = farming.item_to_grow(lowest_item)
+        farming.move_and_plant(func)
 
 
 main()
