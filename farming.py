@@ -110,7 +110,12 @@ def pumpkin():
     world_size = get_world_size()
     for x in range(world_size):
         for y in range(world_size):
-            if get_entity_type() == Entities.Dead_Pumpkin:
+            ent = get_entity_type()
+            if ent == Entities.Dead_Pumpkin:
+                plant(Entities.Pumpkin)
+                replaced_pumpkins.append((get_pos_x(), get_pos_y()))
+            elif ent != Entities.Pumpkin:
+                harvest()
                 plant(Entities.Pumpkin)
                 replaced_pumpkins.append((get_pos_x(), get_pos_y()))
             move(North)
