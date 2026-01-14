@@ -23,13 +23,13 @@ def goto(x, y):
     if diff_x > 0:
         dir_x = East
     if abs(diff_x) > half_world:
-        dir_x = flip_direction[dir_x]
+        dir_x = flip_direction(dir_x)
 
     dir_y = South
     if diff_y > 0:
         dir_y = North
     if abs(diff_y) > half_world:
-        dir_y = flip_direction[dir_y]
+        dir_y = flip_direction(dir_y)
 
     while x != get_pos_x():
         move(dir_x)
@@ -49,6 +49,11 @@ def get_item_totals():
 
 
 def get_lowest_item():
+    # Check special items first
+    if num_items(Items.Power) < 5000:
+        return Items.Power
+
+    # Check resources and get the minimal
     items = {
         Items.Hay, 
         Items.Wood,

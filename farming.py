@@ -44,34 +44,6 @@ def default_yield(update):
     return default
 
 
-def grass():
-    grow(Entities.Grass)
-
-
-def wood():
-    if (get_pos_y() + get_pos_x()) % 2 == 0:
-        grow(Entities.Bush)
-    else:
-        grow(Entities.Tree)
-
-
-def carrot():
-    grow(Entities.Carrot)
-
-
-def pumpkin():
-    if get_entity_type() == Entities.Dead_Pumpkin:
-        plant(Entities.Pumpkin)
-    elif (get_ground_type() == Grounds.Soil) and (get_entity_type() != Entities.Pumpkin):
-        plant(Entities.Pumpkin)
-    else:
-        grow(Entities.Pumpkin)
-
-
-def power():
-    pass
-
-
 def item_to_grow(item):
     convert = {
         Items.Carrot: carrot,
@@ -83,31 +55,104 @@ def item_to_grow(item):
     return convert[item]
 
 
-def pumpkin_all():
-    world_size = 8
-    for x in range(world_size):
-        for y in range(world_size):
-            if can_harvest():
-                harvest()
-                if get_ground_type() != Grounds.Soil:
-                    till()
-                plant(Entities.Pumpkin)
+def grass():
+    polyculture(Entities.Grass)
+
+
+def carrot():
+    polyculture(Entities.Carrot)
+
+
+def wood():
+    # Wood is a special case since it can be bush or tree
+    polyculture("wood")
+
+
+def polyculture(entity):
+    companions = {}
+    world_size = get_world_size()
+
+    for _ in range(world_size):
+        x = get_pos_x()
+        for _ in range(world_size):
+            y = get_pos_y()
+            # First, check if need to plant a companion on this position
+            if (x, y) in companions:
+                grow(companions[(x, y)])
+                companions.pop((x, y))
+            else:
+                # Otherwise, we grow our resource
+                if entity == "wood":
+                    if (x + y) % 2 == 0:
+                        grow(Entities.Bush)
+                    else:
+                        grow(Entities.Tree)
+                else:
+                    grow(entity)
+
+                # And check if this resource has a companion
+                plant_type, (xx, yy) = get_companion()
+                if plant_type:
+                    companions[(xx, yy)] = plant_type
+
             move(North)
         move(East)
 
-    for i in range(2):
-        for x in range(world_size):
-            for y in range(world_size):
-                if get_entity_type() == Entities.Dead_Pumpkin:
-                    plant(Entities.Pumpkin)
-                move(North)
-            move(East)
 
+def pumpkin():
+    util.goto(0, 0)
+    # Farm pumpkins in multiple cycles
+    # 1. First loop, plant
+    plant_one_field(grow, Entities.Pumpkin)
 
-def move_and_plant(func):
+    # 2. Second loop, check pumpkins and create list.
+    replaced_pumpkins = []
     world_size = get_world_size()
     for x in range(world_size):
         for y in range(world_size):
-            func()
+            if get_entity_type() == Entities.Dead_Pumpkin:
+                plant(Entities.Pumpkin)
+                replaced_pumpkins.append((get_pos_x(), get_pos_y()))
+            move(North)
+        move(East)
+
+    # 3. Only check the replaced pumpkins
+    while len(replaced_pumpkins) > 0:
+        for pos in replaced_pumpkins:
+            util.goto(pos[0], pos[1])
+            if get_entity_type() == Entities.Dead_Pumpkin:
+                plant(Entities.Pumpkin)
+            if can_harvest():
+                replaced_pumpkins.remove(pos)
+
+    # Harvest one big pumpkin
+    harvest()
+
+
+def power():
+    util.goto(0, 0)
+    measured_power = {}
+    world_size = get_world_size()
+    for x in range(world_size):
+        for y in range(world_size):
+            grow(Entities.Sunflower)
+            measured_power[(get_pos_x(), get_pos_y())] = measure()
+            move(North)
+        move(East)
+
+    max_power = 15
+    while max_power >= 7:
+        for pos in measured_power:
+            if measured_power[pos] == max_power:
+                util.goto(pos[0], pos[1])
+                harvest()
+        max_power -= 1
+
+
+def plant_one_field(func, args):
+    world_size = get_world_size()
+    for x in range(world_size):
+        for y in range(world_size):
+            func(args)
             move(North)
         move(East)
