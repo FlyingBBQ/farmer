@@ -119,3 +119,39 @@ def sort(direction):
         for _ in range(sorted_length - traverse_back):
             move(direction)
 
+
+def spawn_maze():
+    harvest()
+    plant(Entities.Bush)
+    substance = get_world_size() * 2**(num_unlocked(Unlocks.Mazes) - 1)
+    use_item(Items.Weird_Substance, substance)
+
+
+def solve_maze():
+    directions = [North, East, South, West]
+    index = 0
+
+    def turn_right(index):
+        return (index + 1) % 4
+
+    def turn_left(index):
+        return (index - 1) % 4
+
+    while get_entity_type() != Entities.Treasure:
+        if can_move(directions[turn_left(index)]):
+            index = turn_left(index)
+
+        if can_move(directions[index]):
+            move(directions[index])
+        else:
+            index = turn_right(index)
+
+    # The treasure has been found!
+    harvest()
+
+
+def solve_maze_loop():
+    while True:
+        solve_maze()
+        spawn_maze()
+

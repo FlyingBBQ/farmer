@@ -1,4 +1,3 @@
-from __builtins__ import get_entity_type
 import util
 
 def till_entity(entity):
@@ -131,7 +130,8 @@ def pumpkin():
 
     # 3. Only check the replaced pumpkins
     while len(replaced_pumpkins) > 0:
-        for pos in replaced_pumpkins[:]: #iterate over copy of list to prevent index shifting after removing elements
+        # Iterate over copy of list to prevent index shifting after removing elements
+        for pos in replaced_pumpkins[:]:
             util.goto(pos[0], pos[1])
             if get_entity_type() == Entities.Dead_Pumpkin:
                 plant(Entities.Pumpkin)
@@ -186,5 +186,7 @@ def plant_one_field(func, args):
     for x in range(world_size):
         for y in range(world_size):
             func(args)
+            if y % 3 == 1:
+                use_item(Items.Fertilizer)
             move(North)
         move(East)
