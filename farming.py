@@ -1,7 +1,13 @@
+from __builtins__ import get_entity_type
 import util
 
 def till_entity(entity):
-    needs_soil = {Entities.Pumpkin, Entities.Carrot, Entities.Sunflower}
+    needs_soil = {
+        Entities.Pumpkin,
+        Entities.Carrot,
+        Entities.Sunflower,
+        Entities.Cactus,
+    }
     should_be_soil = (entity in needs_soil)
     is_soil = (get_ground_type() == Grounds.Soil)
 
@@ -33,6 +39,7 @@ def default_yield(update):
     default = {
         Entities.Bush: 80,
         Entities.Carrot: 80,
+        Entities.Cactus: 1,
         Entities.Grass: 16,
         Entities.Pumpkin: 4, # multiply * 6
         Entities.Sunflower: 1,
@@ -51,6 +58,7 @@ def item_to_grow(item):
         Items.Power: power,
         Items.Pumpkin: pumpkin,
         Items.Wood: wood,
+        Items.Cactus: cactus,
     }
     return convert[item]
 
@@ -152,6 +160,25 @@ def power():
                 util.goto(pos[0], pos[1])
                 harvest()
         max_power -= 1
+
+
+def cactus():
+    util.goto(0, 0)
+    plant_one_field(grow, Entities.Cactus)
+
+    # Rows
+    util.goto(0, 0)
+    for _ in range(get_world_size()):
+        util.sort(East)
+        move(North)
+
+    # Columns
+    util.goto(0, 0)
+    for _ in range(get_world_size()):
+        util.sort(North)
+        move(East)
+
+    harvest()
 
 
 def plant_one_field(func, args):

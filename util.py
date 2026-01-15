@@ -14,22 +14,18 @@ def flip_direction(dir):
 
 
 def goto(x, y):
-    diff_x = x - get_pos_x()
-    diff_y = y - get_pos_y()
-
     half_world = (get_world_size() / 2)
 
-    dir_x = West
-    if diff_x > 0:
-        dir_x = East
-    if abs(diff_x) > half_world:
-        dir_x = flip_direction(dir_x)
-
-    dir_y = South
-    if diff_y > 0:
-        dir_y = North
-    if abs(diff_y) > half_world:
-        dir_y = flip_direction(dir_y)
+    def direction(diff, negative, positive):
+        dir = negative
+        if diff > 0:
+            dir = positive
+        if abs(diff) > half_world:
+            dir = flip_direction(dir)
+        return dir
+    
+    dir_x = direction(x - get_pos_x(), West, East)
+    dir_y = direction(y - get_pos_y(), South, North)
 
     while x != get_pos_x():
         move(dir_x)
@@ -45,6 +41,7 @@ def get_item_totals():
         Items.Pumpkin: num_items(Items.Pumpkin),
         Items.Water: num_items(Items.Water),
         Items.Fertilizer: num_items(Items.Fertilizer),
+        Items.Cactus: num_items(Items.Cactus),
     }
 
 
@@ -55,10 +52,11 @@ def get_lowest_item():
 
     # Check resources and get the minimal
     items = {
-        Items.Hay, 
-        Items.Wood,
+        Items.Cactus,
         Items.Carrot,
+        Items.Hay, 
         Items.Pumpkin,
+        Items.Wood,
     }
     values = {}
     for key in items:
@@ -68,6 +66,7 @@ def get_lowest_item():
 
 def item_to_entity(item):
     convert = {
+        Items.Cactus: Entities.Cactus,
         Items.Carrot: Entities.Carrot,
         Items.Hay: Entities.Grass,
         Items.Power: Entities.Sunflower,
@@ -80,6 +79,7 @@ def item_to_entity(item):
 def entity_to_item(entity):
     convert = {
         Entities.Bush: Items.Wood,
+        Entities.Cactus: Items.Cactus,
         Entities.Carrot: Items.Carrot,
         Entities.Grass: Items.Hay,
         Entities.Pumpkin: Items.Pumpkin,
@@ -100,4 +100,22 @@ def get_item_cost(relation_dict, entity, weight):
         get_item_cost(relation_dict, item_to_entity(item), cost)
     return relation_dict
 
+
+def sort(direction):
+    world_size = get_world_size()
+    inverse_direction = flip_direction(direction)
+    sorted_length = 1
+    move(direction)
+
+    while sorted_length < world_size:
+        traverse_back = sorted_length
+
+        while (traverse_back > 0) and (measure(inverse_direction) > measure()):
+            swap(inverse_direction)
+            move(inverse_direction)
+            traverse_back -= 1
+
+        sorted_length += 1
+        for _ in range(sorted_length - traverse_back):
+            move(direction)
 
