@@ -123,7 +123,7 @@ def pumpkin():
 
     # 3. Only check the replaced pumpkins
     while len(replaced_pumpkins) > 0:
-        for pos in replaced_pumpkins:
+        for pos in replaced_pumpkins[:]: #iterate over copy of list to prevent index shifting after removing elements
             util.goto(pos[0], pos[1])
             if get_entity_type() == Entities.Dead_Pumpkin:
                 plant(Entities.Pumpkin)
