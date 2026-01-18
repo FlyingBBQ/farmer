@@ -110,37 +110,47 @@ def polyculture(entity):
 
 def pumpkin():
     util.goto(0, 0)
-    # Farm pumpkins in multiple cycles
-    # 1. First loop, plant
-    plant_one_field(grow, Entities.Pumpkin)
-
-    # 2. Second loop, check pumpkins and create list.
-    replaced_pumpkins = []
     world_size = get_world_size()
-    for x in range(world_size):
-        for y in range(world_size):
-            ent = get_entity_type()
-            if ent == Entities.Dead_Pumpkin:
-                plant(Entities.Pumpkin)
-                replaced_pumpkins.append((get_pos_x(), get_pos_y()))
-            elif ent != Entities.Pumpkin:
-                harvest()
-                plant(Entities.Pumpkin)
-                replaced_pumpkins.append((get_pos_x(), get_pos_y()))
-            move(North)
+
+    def plant_pumpkin():
+        check_pumpkins = True
+        # Keep looping until all pumpkins are good
+        while check_pumpkins:
+            check_pumpkins = False
+            # Iterate once over the lane
+            for x in range(get_world_size()):
+                type = get_entity_type()
+                # Harvest anything that is not a pumpkin
+                if (type != Entities.Pumpkin) and (type != Entities.Dead_Pumpkin):
+                    harvest()
+                    till_entity(Entities.Pumpkin)
+                    plant(Entities.Pumpkin)
+                    check_pumpkins = True
+                # Replant any dead pumpkin
+                elif type == Entities.Dead_Pumpkin:
+                    if get_water() < 1:
+                        use_item(Items.Water)
+                    plant(Entities.Pumpkin)
+                    check_pumpkins = True
+                # Wait till pumpkins are fully grown
+                elif not can_harvest():
+                    check_pumpkins = True
+
+                move(North)
+
+
+    # Spawn a drone for each column to plant pumpkins
+    for x in range(world_size - 1):
+        spawn_drone(plant_pumpkin)
         move(East)
 
-    # 3. Only check the replaced pumpkins
-    while len(replaced_pumpkins) > 0:
-        # Iterate over copy of list to prevent index shifting after removing elements
-        for pos in replaced_pumpkins[:]:
-            util.goto(pos[0], pos[1])
-            if get_entity_type() == Entities.Dead_Pumpkin:
-                plant(Entities.Pumpkin)
-            if can_harvest():
-                replaced_pumpkins.remove(pos)
+    # Plant the last row
+    plant_pumpkin()
 
-    # Harvest one big pumpkin
+    # Wait for all drones to finish
+    while num_drones() > 1:
+        pass
+
     harvest()
 
 
@@ -150,12 +160,15 @@ def power():
     util.goto(0, 0)
     world_size = get_world_size()
 
-    def plant_power():
-        plant_one_lane(grow, Entities.Sunflower, 0.6, North)
+    def plant_sunflower():
+        for x in range(get_world_size()):
+            grow(Entities.Sunflower, 0.6)
+            move(North)
 
-    for x in range(world_size):
-        spawn_drone(plant_power)
+    for x in range(world_size - 1):
+        spawn_drone(plant_sunflower)
         move(East)
+    plant_sunflower()
 
     while num_drones() > 1:
         pass
@@ -197,12 +210,6 @@ def cactus():
         move(East)
 
     harvest()
-
-
-def plant_one_lane(func, arg1, arg2, direction):
-    for x in range(get_world_size()):
-        func(arg1, arg2)
-        move(direction)
 
 
 def plant_one_field(func, args):
