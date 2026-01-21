@@ -137,14 +137,17 @@ def solve_maze():
     def turn_left(index):
         return (index - 1) % 4
 
+    # Solve the maze by following the left wall
     while get_entity_type() != Entities.Treasure:
+        # Turn left if there is no wall on the left hand side
         if can_move(directions[turn_left(index)]):
             index = turn_left(index)
-
-        if can_move(directions[index]):
-            move(directions[index])
-        else:
+        # If there is a wall in front of us turn right
+        if not can_move(directions[index]):
             index = turn_right(index)
+        else:
+            # Otherwise we move forward
+            move(directions[index])
 
     # The treasure has been found!
     harvest()

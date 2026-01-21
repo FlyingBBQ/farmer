@@ -47,24 +47,7 @@ def main():
     change_hat(Hats.Wizard_Hat)
     util.goto(0, 0)
 
-    multi_poly(Entities.Carrot)
-    
-    # def drone_poly(entity):
-    #     def redirect():
-    #         for _ in range(get_pos_x() % 2):
-    #             move(North)
-    #         while True:
-    #             farming.polyculture4(entity)
-    #     return redirect
-    #
-    # for x in range(get_world_size() - 1):
-    #     #spawn_drone(drone_poly(Entities.Carrot))
-    #     spawn_drone(farming.grass2)
-    #     move(East)
-
-    # while True:
-    #     farming.polyculture4(Entities.Tree)
-
+    farming.wood()
 
 
 main()

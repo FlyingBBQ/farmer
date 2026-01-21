@@ -65,103 +65,33 @@ def item_to_grow(item):
 
 
 def grass():
-    polyculture(Entities.Grass)
+    def farm_grass():
+        while True:
+            harvest()
+            move(North)
 
-
-def grass2():
-    while True:
-        harvest()
-        move(North)
+    for x in range(get_world_size() - 1):
+        spawn_drone(farm_grass)
+        move(East)
+    farm_grass()
 
 
 def carrot():
-    polyculture(Entities.Carrot)
+    polyculture_static(Entities.Carrot)
 
 
 def wood():
-    # Wood is a special case since it can be bush or tree
-    polyculture("wood")
+    def farm_wood():
+        while True:
+            polyculture_checkerboard(Entities.Tree)
 
-
-def polyculture2(entity):
-    companions = {}
-    world_size = get_world_size()
-
-    for _ in range(world_size):
-        x = get_pos_x()
-        for _ in range(world_size):
-            y = get_pos_y()
-            # First, check if need to plant a companion on this position
-            if (x, y) in companions:
-                grow(companions[(x, y)])
-                companions.pop((x, y))
-            else:
-                # Otherwise, we grow our resource
-                if entity == "wood":
-                    if (x + y) % 2 == 0:
-                        grow(Entities.Bush)
-                    else:
-                        grow(Entities.Tree)
-                else:
-                    grow(entity)
-
-                # And check if this resource has a companion
-                plant_type, (xx, yy) = get_companion()
-                if plant_type:
-                    companions[(xx, yy)] = plant_type
-
-            move(North)
+    for x in range(get_world_size() - 1):
+        spawn_drone(farm_wood)
         move(East)
+    farm_wood()
 
 
-# multi drone parallel
-polyculture_entity = Entities.Grass
-def polyculture(entity):
-    util.goto(0, 0)
-    world_size = get_world_size()
-
-    global polyculture_entity
-    polyculture_entity = entity
-
-    def plant_companion():
-        plant_type, (x, y) = get_companion()
-        util.goto(x, y)
-        if plant_type != get_entity_type():
-            grow(plant_type)
-
-    def plant_entity():
-        global polyculture_entity
-        for _ in range(get_world_size()):
-            # Special case for planting wood
-            if polyculture_entity == "wood":
-                if (get_pos_x() + get_pos_y()) % 2 == 0:
-                    grow(Entities.Bush)
-                else:
-                    if get_water() < 1:
-                        use_item(Items.Water)
-                    grow(Entities.Tree)
-            # All others use the default
-            else:
-                grow(polyculture_entity)
-            # Check if this tile has a companion
-            plant_type, (xx, yy) = get_companion()
-            if plant_type != polyculture_entity:
-                drone = spawn_drone(plant_companion)
-                if drone:
-                    wait_for(drone)
-            move(North)
-
-    step = 8
-    for start_pos in range(step):
-        for x in range(start_pos, world_size, step):
-            while num_drones() > 16:
-                pass
-            spawn_drone(plant_entity)
-            for _ in range(step):
-                move(East)
-
-
-def polyculture3(entity):
+def polyculture_static(entity):
     companions = {}
 
     def plant_companion():
@@ -174,13 +104,16 @@ def polyculture3(entity):
         while not can_harvest():
             pass
         grow(entity)
+
         # Always use water to speed up growth
         if get_water() < 0.95:
             use_item(Items.Water)
+
         # Check if the companion is already planted
         plant_type, (x, y) = get_companion()
         if ( (x, y) in companions ) and ( companions[(x, y)] == plant_type ):
             continue
+
         # Update the list and send a drone to plant the companion
         companions[(x, y)] = plant_type
         drone = spawn_drone(plant_companion)
@@ -191,8 +124,10 @@ def polyculture3(entity):
         #     use_item(Items.Fertilizer)
 
 
+def polyculture_checkerboard(entity):
+    if (get_pos_x() % 2) == (get_pos_y() % 2):
+        move(North)
 
-def polyculture4(entity):
     for x in range(get_world_size()):
         grow(entity)
 
@@ -213,7 +148,6 @@ def polyculture4(entity):
             else:
                 harvest()
                 grow(entity)
-
 
 
 def pumpkin():
@@ -243,27 +177,21 @@ def pumpkin():
                 # Wait till pumpkins are fully grown
                 elif not can_harvest():
                     check_pumpkins = True
-
                 move(North)
-
 
     # Spawn a drone for each column to plant pumpkins
     for x in range(world_size - 1):
         spawn_drone(plant_pumpkin)
         move(East)
-
     # Plant the last row
     plant_pumpkin()
 
     # Wait for all drones to finish
     while num_drones() > 1:
         pass
-
     harvest()
 
 
-# Use a global to share state between spawn_drone()
-power_level = 15
 def power():
     util.goto(0, 0)
     world_size = get_world_size()
@@ -281,21 +209,20 @@ def power():
     while num_drones() > 1:
         pass
 
-    def harvest_power():
-        # power_level is 'read-only'
-        global power_level
-        for x in range(get_world_size()):
-            if power_level == measure():
-                while not can_harvest():
-                    pass
-                harvest()
-            move(North)
+    def harvest_power(power_level):
+        def task():
+            for x in range(get_world_size()):
+                if power_level == measure():
+                    while not can_harvest():
+                        pass
+                    harvest()
+                move(North)
+        return task
 
-    global power_level
     power_level = 15
     while power_level >= 7:
         for x in range(world_size):
-            spawn_drone(harvest_power)
+            spawn_drone(harvest_power(power_level))
             move(East)
         # Decrement the global power level
         power_level -= 1
@@ -303,29 +230,34 @@ def power():
 
 def cactus():
     util.goto(0, 0)
-    plant_one_field(grow, Entities.Cactus)
-
-    # Rows
-    util.goto(0, 0)
-    for _ in range(get_world_size()):
+    world_size = get_world_size()
+    
+    def plant_and_sort_row_cactus():
+        for x in range(get_world_size()):
+            grow(Entities.Cactus)
+            move(East)
         util.sort(East)
-        move(North)
 
-    # Columns
-    util.goto(0, 0)
-    for _ in range(get_world_size()):
+    def sort_column_cactus():
         util.sort(North)
-        move(East)
 
+    # Spawn a drone for each row to plant pumpkins
+    for x in range(world_size - 1):
+        spawn_drone(plant_and_sort_row_cactus)
+        move(North)
+    # Plant the last row
+    plant_and_sort_row_cactus()
+
+    while num_drones() > 1:
+        pass
+    util.goto(0, 0)
+
+    for y in range(world_size - 1):
+        spawn_drone(sort_column_cactus)
+        move(East)
+    sort_column_cactus()
+
+    while num_drones() > 1:
+        pass
     harvest()
 
-
-def plant_one_field(func, args):
-    world_size = get_world_size()
-    for x in range(world_size):
-        for y in range(world_size):
-            func(args)
-            if y % 3 == 1:
-                use_item(Items.Fertilizer)
-            move(North)
-        move(East)
