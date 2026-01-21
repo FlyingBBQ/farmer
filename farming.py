@@ -68,6 +68,12 @@ def grass():
     polyculture(Entities.Grass)
 
 
+def grass2():
+    while True:
+        harvest()
+        move(North)
+
+
 def carrot():
     polyculture(Entities.Carrot)
 
@@ -77,7 +83,7 @@ def wood():
     polyculture("wood")
 
 
-def polyculture(entity):
+def polyculture2(entity):
     companions = {}
     world_size = get_world_size()
 
@@ -106,6 +112,108 @@ def polyculture(entity):
 
             move(North)
         move(East)
+
+
+# multi drone parallel
+polyculture_entity = Entities.Grass
+def polyculture(entity):
+    util.goto(0, 0)
+    world_size = get_world_size()
+
+    global polyculture_entity
+    polyculture_entity = entity
+
+    def plant_companion():
+        plant_type, (x, y) = get_companion()
+        util.goto(x, y)
+        if plant_type != get_entity_type():
+            grow(plant_type)
+
+    def plant_entity():
+        global polyculture_entity
+        for _ in range(get_world_size()):
+            # Special case for planting wood
+            if polyculture_entity == "wood":
+                if (get_pos_x() + get_pos_y()) % 2 == 0:
+                    grow(Entities.Bush)
+                else:
+                    if get_water() < 1:
+                        use_item(Items.Water)
+                    grow(Entities.Tree)
+            # All others use the default
+            else:
+                grow(polyculture_entity)
+            # Check if this tile has a companion
+            plant_type, (xx, yy) = get_companion()
+            if plant_type != polyculture_entity:
+                drone = spawn_drone(plant_companion)
+                if drone:
+                    wait_for(drone)
+            move(North)
+
+    step = 8
+    for start_pos in range(step):
+        for x in range(start_pos, world_size, step):
+            while num_drones() > 16:
+                pass
+            spawn_drone(plant_entity)
+            for _ in range(step):
+                move(East)
+
+
+def polyculture3(entity):
+    companions = {}
+
+    def plant_companion():
+        plant_type, (x, y) = get_companion()
+        util.goto(x, y)
+        if plant_type != get_entity_type():
+            grow(plant_type)
+
+    while True:
+        while not can_harvest():
+            pass
+        grow(entity)
+        # Always use water to speed up growth
+        if get_water() < 0.95:
+            use_item(Items.Water)
+        # Check if the companion is already planted
+        plant_type, (x, y) = get_companion()
+        if ( (x, y) in companions ) and ( companions[(x, y)] == plant_type ):
+            continue
+        # Update the list and send a drone to plant the companion
+        companions[(x, y)] = plant_type
+        drone = spawn_drone(plant_companion)
+        if drone:
+            wait_for(drone)
+
+        # if not can_harvest():
+        #     use_item(Items.Fertilizer)
+
+
+
+def polyculture4(entity):
+    for x in range(get_world_size()):
+        grow(entity)
+
+        companion_entity = Entities.Grass
+        plant_type = None
+        while plant_type != companion_entity:
+            plant_type, (x, y) = get_companion()
+            if plant_type == companion_entity:
+                if ((x % 2) == 1) and ((y % 2) == 0):
+                    move(North)
+                    move(North)
+                elif ((x % 2) == 0) and ((y % 2) == 1):
+                    move(North)
+                    move(North)
+                else:
+                    harvest()
+                    grow(entity)
+            else:
+                harvest()
+                grow(entity)
+
 
 
 def pumpkin():
